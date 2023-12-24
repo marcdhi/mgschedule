@@ -1,10 +1,13 @@
 import math
+import datetime
+import time
+from typing import Any, Optional
 
-class MGScheduler():
+class MGScheduler(object):
 
     jobs = []
 
-    def __init__(self, model, bu, date, time):
+    def __init__(self, model, bu, date, time) -> None:
 
         self.model = model
         self.bu = bu
@@ -43,16 +46,33 @@ class MGScheduler():
 
         return sorted_jobs
     
+class MGJob(object):
+
+    def __init__(self, mgscheduler: Optional[MGScheduler] = None):
+
+       # self.at_time = Optional[datetime.time] = None
+        #self.at_timezone = None
+        #self.start_date = Optional[str] = None
+
+        self.mgscheduler = mgscheduler
+
+    def when(self):
+
+        print("Your job will be scheduled at: ", self.mgscheduler)
 
 event_1 = MGScheduler("LTIF", "Hoist", "31/12/2023", "6:00 PM")
 
-#event_2 = MGScheduler("INCIDENT_PROBABILITY", "Hoist 11", "25/12/2023", "5:00 PM")
+event_2 = MGScheduler("INCIDENT_PROBABILITY", "Hoist 11", "25/12/2023", "5:00 PM")
 
 event_1.confirmJob()
 
 MGScheduler.listJobs()
 
 MGScheduler.sortJobs()
+
+job1 = MGJob(MGScheduler.sortJobs())
+
+job1.when()
 
 
 
