@@ -5,6 +5,7 @@ import datetime
 import json
 import requests
 import logging
+import os
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -72,8 +73,10 @@ def schedule(data: Schedule):
     schedule_time = datetime.datetime.strptime(time, "%I:%M %p")
     cap_model = data.model.upper()
     cap_client = data.client.upper()
+    day_to_schedule_at = data.day
+    date_to_schedule_at = data.exact_date
     
-    mgschedule = MGScheduler(cap_model, cap_client, data.bu, data.recur_at, schedule_time, today)
+    mgschedule = MGScheduler(cap_model, cap_client, data.bu, data.recur_at, day_to_schedule_at, date_to_schedule_at, schedule_time, today)
     dict_of_jobs = mgschedule.list_jobs()
     print(dict_of_jobs)
 
@@ -92,12 +95,19 @@ def schedule(data: Schedule):
             "client": dict_of_jobs["client"],
             "bu": dict_of_jobs["bu"],
             "recur_at": dict_of_jobs["recur_at"],
+            "day_at": dict_of_jobs["day_at"],
+            "exact_date": dict_of_jobs["exact_date"],
             "time": string_time,
             "today": string_today,
             "next_run": string_next_run
     }
 
     print("Your payload: ", store_payload_in_db)
+
+    # Create a JSON file if it doesn't exist
+    if not os.path.exists('schedule.json'):
+        with open('schedule.json', 'w') as file:
+            json.dump([], file)
 
     # Load existing data from the JSON file
     with open('schedule.json', 'r') as file:
@@ -122,6 +132,9 @@ def schedule(data: Schedule):
     with open('schedule.json', 'w') as file:
         json.dump(existing_data, file, indent=2)
 
-    rule_based_api()
+    with open('schedule.json', 'r') as file:
+        latest_content = file.read()
+        
+    # rule_based_api()
     
-    return {"Your endpoint will next run on": next_run}
+    return latest_content

@@ -1,22 +1,38 @@
 [
   {
-    "id": "def5b9c6bfe97f509800a9b076315338f19a0ff7a901032fdee469ed8986541c",
+    "id": "9a4294b445792178d0acfe32a46c386e37a3adc87cbf150dcc8cc62c768e8efe",
     "model": "LTIF",
     "client": "ADES",
-    "bu": "Hoist 11",
-    "recur_at": "daily",
+    "bu": 12,
+    "recur_at": "weekly",
+    "day_at": "Friday",
+    "exact_date": "",
     "time": "08:00 PM",
-    "today": "26-12-2023",
-    "next_run": "27-12-2023 08:00 PM"
+    "today": "27-12-2023",
+    "next_run": "05-01-2024 08:00 PM"
   },
   {
-    "id": "1e4da301f5dbf3a6662ea259ad99151fe0bbb15d143e8d32da6412048f16924d",
+    "id": "e9549f3d299609d75adb0775fe6dc647542194ebc26a52487aefdbcf7a0827ae",
     "model": "LTIF",
     "client": "MB",
-    "bu": "Hoist 11",
+    "bu": 12,
+    "recur_at": "daily",
+    "day_at": "",
+    "exact_date": "",
+    "time": "04:00 PM",
+    "today": "27-12-2023",
+    "next_run": "28-12-2023 04:00 PM"
+  },
+  {
+    "id": "e0206d91c8564e1064036a5daffb5e2b0b5a8fd54728526b5a7fdde56686982c",
+    "model": "LTIF",
+    "client": "MAZRUI",
+    "bu": 12,
     "recur_at": "monthly",
-    "time": "06:00 PM",
-    "today": "26-12-2023",
-    "next_run": "25-01-2024 06:00 PM"
+    "day_at": "Friday",
+    "exact_date": "12-01-2024",
+    "time": "08:00 PM",
+    "today": "27-12-2023",
+    "next_run": "12-01-2024 08:00 PM"
   }
 ]

@@ -6,7 +6,7 @@ import hashlib
 class MGScheduler:
     jobs = {}
 
-    def __init__(self, model: str, client:str, bu: str, recur_at: str, time: str, today: str) -> None:
+    def __init__(self, model: str, client:str, bu: int, recur_at: str, day: str, exact_date: str, time: str, today: str) -> None:
         # Assign the data to the object
         self.model = model
         self.bu = bu
@@ -14,9 +14,11 @@ class MGScheduler:
         self.recur_at = recur_at
         self.time = time
         self.today = today
+        self.day = day
+        self.exact_date = exact_date
 
         # Hash the data to create a unique ID
-        to_hash_data = self.model + self.bu + self.client
+        to_hash_data = self.model + self.client
         hash_object = hashlib.sha256(to_hash_data.encode())
         hex_dig = hash_object.hexdigest()
         print(hex_dig)
@@ -28,6 +30,8 @@ class MGScheduler:
             "bu": self.bu,
             "client": self.client,
             "recur_at": self.recur_at,
+            "day_at": self.day,
+            "exact_date": self.exact_date,
             "time": self.time,
             "today": self.today
         })
@@ -61,45 +65,45 @@ class MGJob:
         print("Your job is scheduled as -", when)
 
     def next_run(self, today: str) -> datetime.datetime:
-        if self.mgscheduler["recur_at"] == "weekly":
-            exact_time = self.mgscheduler["time"]
-            when_next_day = today + datetime.timedelta(days=7) 
-            when_next = datetime.datetime.combine(when_next_day, exact_time.time())
-            
-            return when_next
 
-        elif self.mgscheduler["recur_at"] == "monthly":
-            exact_time = self.mgscheduler["time"]
-            when_next_month = today + datetime.timedelta(days=30)
-            when_next = datetime.datetime.combine(when_next_month, exact_time.time())
-            
-            return when_next
-
-        elif self.mgscheduler["recur_at"] == "daily":
+        if self.mgscheduler["recur_at"] == "daily":
             exact_time = self.mgscheduler["time"]
             when_next_day = today + datetime.timedelta(days=1)
             when_next = datetime.datetime.combine(when_next_day, exact_time.time())
             
             return when_next
+    
+        elif self.mgscheduler["recur_at"] == "weekly":
+            exact_time = self.mgscheduler["time"]
+            exact_day = self.mgscheduler["day_at"]
 
-# import datetime
+        # Convert the string day to a datetime object
+            days_of_week = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+            today_index = days_of_week.index(today.strftime("%A"))
+            exact_day_index = days_of_week.index(exact_day)
 
-# # recur_at = "weekly"
-# recur_at = "monthly"
-# # recur_at = "daily"
+            print(today_index) # 5
+            print(exact_day_index) # 3
 
-# today = datetime.datetime.now()
+            # Calculate the number of days until the next occurrence
+            days_until_next = (exact_day_index - today_index + 7) % 7
+            
+            # Calculate the next datetime object
+            
+            when_next = today + datetime.timedelta(days=days_until_next + 7)
+            when_next = datetime.datetime.combine(when_next, exact_time.time())
+            
+            return when_next
 
-# schedule_time = datetime.datetime.strptime("5:00 PM", "%I:%M %p")
+        elif self.mgscheduler["recur_at"] == "monthly":
+            exact_time = self.mgscheduler["time"]
+            exact_date = self.mgscheduler["exact_date"]
 
-# # Example usage
-# event_2 = MGScheduler("INCIDENT_PROBABILITY", "MB", "Hoist 11" ,recur_at , schedule_time , today)
+            # Convert the string date to a datetime object
+            exact_date = datetime.datetime.strptime(exact_date, "%d-%m-%Y")
+            when_next_month = exact_date
+            when_next = datetime.datetime.combine(when_next_month, exact_time.time())
+            
+            return when_next
 
-# # event_1.confirm_job()
-# # MGScheduler.list_jobs()
-# sorted_jobs = MGScheduler.sort_jobs()
-
-# job1 = MGJob(sorted_jobs[0])
-# job1.requested_schedule_type()
-# job_scheduled_at = job1.next_run(today)
-# print(job_scheduled_at)
+        
