@@ -47,11 +47,15 @@ def mgschedule(data):
         # using the MGScheduler class to instantiate the object
         mgschedule = MGScheduler(cap_model, cap_client, data.bu, data.recur_at, day_to_schedule_at, date_to_schedule_at, schedule_time, today)
 
+        #####
         # method to list all the jobs & log it
+        #####
         dict_of_jobs = mgschedule.list_jobs()
         logger.info(dict_of_jobs)
 
+        #####
         # using the MGJob class to instantiate the object
+        #####
         job = MGJob(dict_of_jobs)
         job.requested_schedule_type()
         next_run = job.next_run(today)
@@ -64,6 +68,10 @@ def mgschedule(data):
 
         string_exact_today_combined = string_today_date + " " + string_current_time
         string_next_run = next_run.strftime("%d-%m-%Y %I:%M %p")
+
+        #####
+        # Store the payload in a dictionary
+        #####
 
         store_payload_in_db = {
                 "id":dict_of_jobs["id"],
@@ -79,22 +87,34 @@ def mgschedule(data):
                 "from_schedule": data.from_schedule
         }
 
+        #####
         # Create a JSON file if it doesn't exist
+        #####
+
         if not os.path.exists('schedule.json'):
             with open('schedule.json', 'w') as file:
                 json.dump([], file)
 
+        #####
         # Load existing data from the JSON file
-        with open('schedule.json', 'r') as file:
-            content = file.read()
-            # print("File content:", repr(content))
-            if not content:
-                existing_data = []
-            else:
-                existing_data = json.loads(content)
+        #####
+                
+        try:
+            with open('schedule.json', 'r') as file:
+                content = file.read()
+                # print("File content:", repr(content))
+                if not content:
+                    existing_data = []
+                else:
+                    existing_data = json.loads(content)
+        except Exception as e:
+            logger.error(f"Error reading schedule file: {str(e)}")
+            existing_data = []
 
-
+        #####
         # Check if the payload's ID already exists
+        #####
+            
         existing_ids = [item.get('id') for item in existing_data]
         if store_payload_in_db['id'] in existing_ids:
             # Update the existing object
@@ -104,13 +124,28 @@ def mgschedule(data):
             # Append the new payload
             existing_data.append(store_payload_in_db)
 
-        with open('schedule.json', 'w') as file:
-            json.dump(existing_data, file, indent=2)
 
-        with open('schedule.json', 'r') as file:
-            latest_content = file.read()
+        #####
+        # Write the updated payload to the JSON file
+        #####
+        try:
+            with open('schedule.json', 'w') as file:
+                json.dump(existing_data, file, indent=2)
+        except Exception as e:
+            logger.error(f"Error writing to schedule file: {str(e)}")
+
+        #####
+        # Read the latest content from the JSON file
+        #####
+        try:
+            with open('schedule.json', 'r') as file:
+                latest_content = file.read()
+        except Exception as e:
+            logger.error(f"Error reading schedule file: {str(e)}")
+            return None
             
         return latest_content
+    
     except Exception as e:
         logger.error(f"Error in mgschedule: {str(e)}")
         return JSONResponse(content={"error": "Internal Server Error"}, status_code=500)
@@ -185,13 +220,17 @@ def rule_based_api(payload):
             with open('schedule.json', 'w') as file:
                 json.dump(payload_array, file, indent=2)
 
-    logger.info("Success!!")
+    logger.info("Successfully updated the schedule.json file")
 
 # Schedule the background job to run every minute
 def schedule_background_job():
-    current_time = datetime.datetime.now()
-    logger.info("Current time: %s", current_time)
-    schedule.every(1).minutes.do(background_job)
+    try:
+        current_time = datetime.datetime.now()
+        logger.info("Current time: %s", current_time)
+        schedule.every(1).minutes.do(background_job)
+        logger.info("Successfully scheduled the background job")
+    except Exception as e:
+        logger.error(f"Error in schedule background job: {str(e)}")
 
 # Run the scheduled tasks in a separate thread
 async def run_scheduled_tasks_async():
@@ -202,29 +241,41 @@ async def run_scheduled_tasks_async():
 # Start the scheduled tasks in a separate thread on app startup
 @app.on_event("startup")
 def startup_event():
-    logger.info(" ")
-    logger.info(" ")
-    logger.info("Starting background scheduler...")
-    schedule_background_job()
-    asyncio.create_task(run_scheduled_tasks_async())
+    try:
+        logger.info(" ")
+        logger.info(" ")
+        logger.info("Starting background scheduler...")
+        schedule_background_job()
+        asyncio.create_task(run_scheduled_tasks_async())
+    except Exception as e:
+        logger.error(f"Error in startup event: {str(e)}")
+        return JSONResponse(content={"error": "Internal Server Error"}, status_code=500)
     # threading.Thread(target=run_scheduled_tasks, daemon=True).start()
 
 def background_job():
-    with open('schedule.json', 'r') as file:
-        latest_content = file.read()
-    rule_based_api(latest_content)
-    
+    try:
+        with open('schedule.json', 'r') as file:
+            latest_content = file.read()
+        rule_based_api(latest_content)
+    except Exception as e:
+        logger.error(f"Error in background job: {str(e)}")
+
 # this route is when users wanna schedule a job
 @app.post("/schedule")
-async def main(data: Schedule):
-    payload = mgschedule(data)
-    logger.info("Payload: %s", payload)
+async def schedule_entry_main(data: Schedule):
+    try:
+        payload = mgschedule(data)
+        logger.info("Payload: %s", payload)
+        payload_array = json.loads(payload)
+        return JSONResponse(content=payload_array, status_code=201)
+    except Exception as e:
+        logger.error(f"Error in schedule main: {str(e)}")
+        return JSONResponse(content={"error": "Internal Server Error"}, status_code=500)
     
 def add_your_prediction_functions_here(data):
     logger.info(" ")
     logger.info("Running the model for %s, %s", data["model"], data["client"])
     logger.info(" ")
     logger.info(data)
-    
 
 

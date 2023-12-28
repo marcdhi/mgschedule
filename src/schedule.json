@@ -8,7 +8,7 @@
     "day_at": "",
     "exact_date": "12-01-2024",
     "time": "08:00 PM",
-    "today": "28-12-2023 04:05 PM",
+    "today": "28-12-2023 04:42 PM",
     "next_run": "12-01-2024 08:00 PM",
     "from_schedule": true
   },
@@ -20,9 +20,9 @@
     "recur_at": "daily",
     "day_at": "",
     "exact_date": "",
-    "time": "04:05 PM",
-    "today": "28-12-2023 04:05 PM",
-    "next_run": "29-12-2023 04:05 PM",
+    "time": "04:16 PM",
+    "today": "28-12-2023 04:42 PM",
+    "next_run": "29-12-2023 04:16 PM",
     "from_schedule": true
   },
   {
@@ -34,7 +34,7 @@
     "day_at": "",
     "exact_date": "",
     "time": "04:00 AM",
-    "today": "28-12-2023 04:05 PM",
+    "today": "28-12-2023 04:42 PM",
     "next_run": "29-12-2023 04:00 AM",
     "from_schedule": true
   },
@@ -47,7 +47,7 @@
     "day_at": "",
     "exact_date": "",
     "time": "11:45 AM",
-    "today": "28-12-2023 04:05 PM",
+    "today": "28-12-2023 04:42 PM",
     "next_run": "04-01-2024 12:40 PM",
     "from_schedule": true
   }
