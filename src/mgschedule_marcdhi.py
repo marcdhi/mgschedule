@@ -65,8 +65,13 @@ class MGJob:
         print("Your job is scheduled as -", when)
 
     def next_run(self, today: str) -> datetime.datetime:
+        if self.mgscheduler["recur_at"] == "today":
+            exact_time = self.mgscheduler["time"]
+            when_next = datetime.datetime.combine(today, exact_time.time())
+            
+            return when_next
 
-        if self.mgscheduler["recur_at"] == "daily":
+        elif self.mgscheduler["recur_at"] == "daily":
             exact_time = self.mgscheduler["time"]
             when_next_day = today + datetime.timedelta(days=1)
             when_next = datetime.datetime.combine(when_next_day, exact_time.time())
@@ -82,8 +87,8 @@ class MGJob:
             today_index = days_of_week.index(today.strftime("%A"))
             exact_day_index = days_of_week.index(exact_day)
 
-            print(today_index) # 5
-            print(exact_day_index) # 3
+            print(today_index) 
+            print(exact_day_index) 
 
             # Calculate the number of days until the next occurrence
             days_until_next = (exact_day_index - today_index + 7) % 7

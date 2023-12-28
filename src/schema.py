@@ -8,5 +8,6 @@ class Schedule(BaseModel):
     exact_date: str = None
     day: str = None
     time: str 
+    from_schedule: bool = True
     
      
