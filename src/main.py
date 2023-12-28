@@ -11,6 +11,11 @@ from fastapi.middleware.cors import CORSMiddleware
 import schedule
 import time
 import threading
+import asyncio  
+
+# Configure logging to write to a file
+logging.basicConfig(filename='dev.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
@@ -27,79 +32,88 @@ def main():
     return {"message": "Hello World"}
 
 def mgschedule(data):
-    print(data)
+    try:
+        logger.info(data)
 
-    today = datetime.datetime.now()
-    time = data.time
+        today = datetime.datetime.now()
 
-    schedule_time = datetime.datetime.strptime(time, "%I:%M %p")
-    cap_model = data.model.upper()
-    cap_client = data.client.upper()
-    day_to_schedule_at = data.day
-    date_to_schedule_at = data.exact_date
-    
-    mgschedule = MGScheduler(cap_model, cap_client, data.bu, data.recur_at, day_to_schedule_at, date_to_schedule_at, schedule_time, today)
-    dict_of_jobs = mgschedule.list_jobs()
-    print(dict_of_jobs)
+        time = data.time
+        schedule_time = datetime.datetime.strptime(time, "%I:%M %p")
 
-    job = MGJob(dict_of_jobs)
-    job.requested_schedule_type()
-    next_run = job.next_run(today)
-    print(next_run)
+        cap_model = data.model.upper()
+        cap_client = data.client.upper()
+        day_to_schedule_at = data.day
+        date_to_schedule_at = data.exact_date
+        # using the MGScheduler class to instantiate the object
+        mgschedule = MGScheduler(cap_model, cap_client, data.bu, data.recur_at, day_to_schedule_at, date_to_schedule_at, schedule_time, today)
 
-    string_time = next_run.strftime("%I:%M %p")
-    string_today_date = today.strftime("%d-%m-%Y")
-    string_current_time = today.strftime("%I:%M %p")
+        # method to list all the jobs & log it
+        dict_of_jobs = mgschedule.list_jobs()
+        logger.info(dict_of_jobs)
 
-    string_exact_today_combined = string_today_date + " " + string_current_time
-    string_next_run = next_run.strftime("%d-%m-%Y %I:%M %p")
+        # using the MGJob class to instantiate the object
+        job = MGJob(dict_of_jobs)
+        job.requested_schedule_type()
+        next_run = job.next_run(today)
+        logger.info("Your job has been scheduled to run on %s", next_run)
 
-    store_payload_in_db = {
-            "id":dict_of_jobs["id"],
-            "model": dict_of_jobs["model"],
-            "client": dict_of_jobs["client"],
-            "bu": dict_of_jobs["bu"],
-            "recur_at": dict_of_jobs["recur_at"],
-            "day_at": dict_of_jobs["day_at"],
-            "exact_date": dict_of_jobs["exact_date"],
-            "time": string_time,
-            "today": string_exact_today_combined,
-            "next_run": string_next_run,
-            "from_schedule": data.from_schedule
-    }
+        # convert the datetime object to string
+        string_time = next_run.strftime("%I:%M %p")
+        string_today_date = today.strftime("%d-%m-%Y")
+        string_current_time = today.strftime("%I:%M %p")
 
-    # Create a JSON file if it doesn't exist
-    if not os.path.exists('schedule.json'):
-        with open('schedule.json', 'w') as file:
-            json.dump([], file)
+        string_exact_today_combined = string_today_date + " " + string_current_time
+        string_next_run = next_run.strftime("%d-%m-%Y %I:%M %p")
 
-    # Load existing data from the JSON file
-    with open('schedule.json', 'r') as file:
-        content = file.read()
-        # print("File content:", repr(content))
-        if not content:
-            existing_data = []
+        store_payload_in_db = {
+                "id":dict_of_jobs["id"],
+                "model": dict_of_jobs["model"],
+                "client": dict_of_jobs["client"],
+                "bu": dict_of_jobs["bu"],
+                "recur_at": dict_of_jobs["recur_at"],
+                "day_at": dict_of_jobs["day_at"],
+                "exact_date": dict_of_jobs["exact_date"],
+                "time": string_time,
+                "today": string_exact_today_combined,
+                "next_run": string_next_run,
+                "from_schedule": data.from_schedule
+        }
+
+        # Create a JSON file if it doesn't exist
+        if not os.path.exists('schedule.json'):
+            with open('schedule.json', 'w') as file:
+                json.dump([], file)
+
+        # Load existing data from the JSON file
+        with open('schedule.json', 'r') as file:
+            content = file.read()
+            # print("File content:", repr(content))
+            if not content:
+                existing_data = []
+            else:
+                existing_data = json.loads(content)
+
+
+        # Check if the payload's ID already exists
+        existing_ids = [item.get('id') for item in existing_data]
+        if store_payload_in_db['id'] in existing_ids:
+            # Update the existing object
+            index = existing_ids.index(store_payload_in_db['id'])
+            existing_data[index] = store_payload_in_db
         else:
-            existing_data = json.loads(content)
+            # Append the new payload
+            existing_data.append(store_payload_in_db)
 
+        with open('schedule.json', 'w') as file:
+            json.dump(existing_data, file, indent=2)
 
-    # Check if the payload's ID already exists
-    existing_ids = [item.get('id') for item in existing_data]
-    if store_payload_in_db['id'] in existing_ids:
-        # Update the existing object
-        index = existing_ids.index(store_payload_in_db['id'])
-        existing_data[index] = store_payload_in_db
-    else:
-        # Append the new payload
-        existing_data.append(store_payload_in_db)
-
-    with open('schedule.json', 'w') as file:
-        json.dump(existing_data, file, indent=2)
-
-    with open('schedule.json', 'r') as file:
-        latest_content = file.read()
-        
-    return latest_content
+        with open('schedule.json', 'r') as file:
+            latest_content = file.read()
+            
+        return latest_content
+    except Exception as e:
+        logger.error(f"Error in mgschedule: {str(e)}")
+        return JSONResponse(content={"error": "Internal Server Error"}, status_code=500)
 
 def rule_based_api(payload):
 
@@ -114,29 +128,41 @@ def rule_based_api(payload):
     for job in payload_array:
         int_next_run = datetime.datetime.strptime(job["next_run"], "%d-%m-%Y %I:%M %p")
 
-        if datetime_convert_today == int_next_run:
+        if datetime_convert_today == int_next_run: # this is if the job is due to run today at the scheduled time
 
-            print("Running the job.....", job["model"], job["client"])
+            logger.info("Running the job ....... model = %s, client = %s", job["model"], job["client"])
 
-            # Updating the next run time and today
+            # Updating the next run time and exact today
             if job["recur_at"] == "daily":
+
                 job["next_run"] = (int_next_run + datetime.timedelta(days=1)).strftime("%d-%m-%Y %I:%M %p")
                 job["today"] = exact_today_with_time
-                print("Updating the next run time to:", job["next_run"])
+
+                logger.info("Updating the next run time to: %s", job["next_run"])
+                logger.info("Updating the exact today to: %s", job["today"])
+
                 with open('schedule.json', 'w') as file:
                     json.dump(payload_array, file, indent=2)
             
             elif job["recur_at"] == "weekly":
+
                 job["next_run"] = (int_next_run + datetime.timedelta(days=7)).strftime("%d-%m-%Y %I:%M %p")
                 job["today"] = exact_today_with_time
-                print("Updating the next run time to:", job["next_run"])
+
+                logger.info("Updating the next run time to: %s", job["next_run"])
+                logger.info("Updating the exact today to: %s", job["today"])
+
                 with open('schedule.json', 'w') as file:
                     json.dump(payload_array, file, indent=2)
             
             elif job["recur_at"] == "monthly":
+
                 job["next_run"] = (int_next_run + datetime.timedelta(days=30)).strftime("%d-%m-%Y %I:%M %p")
                 job["today"] = exact_today_with_time
-                print("Updating the next run time to:", job["next_run"])
+
+                logger.info("Updating the next run time to: %s", job["next_run"])
+                logger.info("Updating the exact today to: %s", job["today"])
+
                 with open('schedule.json', 'w') as file:
                     json.dump(payload_array, file, indent=2)
 
@@ -145,42 +171,43 @@ def rule_based_api(payload):
                 "model": job["model"],
                 "client": job["client"],
                 "bu": job["bu"],
-                "recur_at": job["recur_at"],
-                "time": job["time"]
             }
 
-            hola(data_run)
+            add_your_prediction_functions_here(data_run)
             
         
         elif datetime_convert_today != int_next_run:
 
-            print("Updating all jobs to match today's date and time.....")
-            job["today"] = exact_today_with_time
+            logger.info("Updating job ID = %s to match today's date = %s and time = %s.....",job["id"], string_today, string_current_time)
+            job["today"] = exact_today_with_time # make sure to have this, as it updates in string format
 
             # Write the updated payload to the JSON file
             with open('schedule.json', 'w') as file:
                 json.dump(payload_array, file, indent=2)
 
-    print("Success!!")
+    logger.info("Success!!")
 
 # Schedule the background job to run every minute
 def schedule_background_job():
     current_time = datetime.datetime.now()
-    print("Current time:", current_time)
+    logger.info("Current time: %s", current_time)
     schedule.every(1).minutes.do(background_job)
 
 # Run the scheduled tasks in a separate thread
-def run_scheduled_tasks():
+async def run_scheduled_tasks_async():
     while True:
         schedule.run_pending()
-        time.sleep(1)
+        await asyncio.sleep(1)
 
 # Start the scheduled tasks in a separate thread on app startup
 @app.on_event("startup")
 def startup_event():
-    print("Starting background scheduler...")
+    logger.info(" ")
+    logger.info(" ")
+    logger.info("Starting background scheduler...")
     schedule_background_job()
-    threading.Thread(target=run_scheduled_tasks, daemon=True).start()
+    asyncio.create_task(run_scheduled_tasks_async())
+    # threading.Thread(target=run_scheduled_tasks, daemon=True).start()
 
 def background_job():
     with open('schedule.json', 'r') as file:
@@ -190,18 +217,14 @@ def background_job():
 # this route is when users wanna schedule a job
 @app.post("/schedule")
 async def main(data: Schedule):
-
     payload = mgschedule(data)
-    rule_based_api(payload)
+    logger.info("Payload: %s", payload)
     
-# this route should be always running in the background      
-@app.get("/test")
-async def test_job(background_tasks: BackgroundTasks):
+def add_your_prediction_functions_here(data):
+    logger.info(" ")
+    logger.info("Running the model for %s, %s", data["model"], data["client"])
+    logger.info(" ")
+    logger.info(data)
+    
 
-    background_tasks.add_task(background_job)
 
-    return JSONResponse(content={"message": "Background job started"}, status_code=200)
-
-def hola(data):
-    print(data)
-    print("Hola")
